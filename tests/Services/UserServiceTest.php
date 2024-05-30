@@ -5,6 +5,7 @@ namespace App\Tests\Services;
 use App\DataTransferObjects\API\V1\Authentication\LoginDTO;
 use App\DataTransferObjects\API\V1\Authentication\RegisterPayloadDTO;
 use App\Entity\User;
+use App\Exceptions\UserWithEmailAlreadyExistsException;
 use App\Repository\Interfaces\UserRepositoryInterface;
 use App\Services\Authentication\Interfaces\AuthServiceInterface;
 use App\Services\UserService;
@@ -51,6 +52,10 @@ class UserServiceTest extends TestCase
             ->willReturn('hashed_password');
 
         $this->userRepositoryMock->expects($this->once())
+            ->method('findOneByEmailField')
+            ->willReturn(null);
+
+        $this->userRepositoryMock->expects($this->once())
             ->method('create')
             ->with($payload->replacePassword('hashed_password'))
             ->willReturnCallback(function (RegisterPayloadDTO $payloadDTO) use ($payload) {
@@ -63,6 +68,29 @@ class UserServiceTest extends TestCase
 
                 return $payloadDTO;
             });
+
+        $this->userService->create($payload);
+    }
+
+    public function test_throws_exception_if_email_has_already_been_taken(): void
+    {
+        $payload = new RegisterPayloadDTO(
+            email: 'test@test.com',
+            password: 'plain_password',
+            name: 'Name'
+        );
+
+        $this->passwordHasherMock->expects($this->never())
+            ->method('hashPassword');
+
+        $this->userRepositoryMock->expects($this->never())
+            ->method('create');
+
+        $this->userRepositoryMock->expects($this->once())
+            ->method('findOneByEmailField')
+            ->willReturn(new User());
+
+        $this->expectException(UserWithEmailAlreadyExistsException::class);
 
         $this->userService->create($payload);
     }

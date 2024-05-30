@@ -2,7 +2,7 @@
 
 namespace App\Entity;
 
-use App\Repository\AuthRepository;
+use App\Repository\Authentication\AuthRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AuthRepository::class)]
